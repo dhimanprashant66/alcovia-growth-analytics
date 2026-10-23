@@ -1,0 +1,33 @@
+{
+  "name": "Alcovia - Student Progress Review Queue Demo",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "4dca0781-e144-4aeb-8bd5-5c8f70002201",
+      "name": "Run demo review",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const demoRows = [\n  { student_id: 'ST-101', cohort: 'Cohort A', activities_planned: 8, activities_completed: 4, learning_outcome_pct: 52, pulse_rating: 3.6 },\n  { student_id: 'ST-105', cohort: 'Cohort B', activities_planned: 10, activities_completed: 8, learning_outcome_pct: 78, pulse_rating: 4.1 },\n  { student_id: 'ST-108', cohort: 'Cohort B', activities_planned: 6, activities_completed: 2, learning_outcome_pct: 48, pulse_rating: null }\n];\nconst completionThreshold = 65;\nconst outcomeThreshold = 60;\nreturn demoRows.map((row) => {\n  const completion = row.activities_planned ? 100 * row.activities_completed / row.activities_planned : null;\n  const flags = [];\n  if (completion !== null && completion < completionThreshold) flags.push('completion_below_demo_threshold');\n  if (row.learning_outcome_pct !== null && row.learning_outcome_pct < outcomeThreshold) flags.push('outcome_below_demo_threshold');\n  if (row.pulse_rating === null) flags.push('pulse_missing');\n  return { json: { ...row, completion_pct: completion === null ? null : Math.round(completion * 10) / 10, review_required: flags.length > 0, review_flags: flags, action: flags.length ? 'Human review only; check context with the assigned mentor.' : 'No follow-up flag from demo rules.' } };\n});"
+      },
+      "id": "4dca0781-e144-4aeb-8bd5-5c8f70002202",
+      "name": "Create human review queue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    }
+  ],
+  "connections": {
+    "Run demo review": {
+      "main": [[{"node": "Create human review queue", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "4f60e9e1-4c84-42f4-8d67-9c1d55002202",
+  "meta": {"templateCredsSetupCompleted": true},
+  "tags": []
+}

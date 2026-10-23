@@ -1,0 +1,39 @@
+{
+  "name": "Alcovia - ClickUp Lead Webhook Starter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "alcovia-clickup-lead",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "9e2f1226-9d4a-4cda-96d5-c9f812321101",
+      "name": "Receive ClickUp event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "alcovia-clickup-lead-starter"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nconst task = body.task ?? body;\nconst customFields = Array.isArray(task.custom_fields) ? task.custom_fields : [];\nconst fieldValue = (name) => customFields.find((f) => String(f.name || '').toLowerCase() === name)?.value ?? null;\nconst externalId = task.id ?? task.task_id ?? null;\nif (!externalId) {\n  return [{ json: { accepted: false, error: 'Missing ClickUp task id', expected: 'task.id or task.task_id' } }];\n}\nconst createdRaw = task.date_created ?? task.created_at ?? new Date().toISOString();\nconst createdAt = Number.isFinite(Number(createdRaw)) && String(createdRaw).length >= 10\n  ? new Date(Number(createdRaw)).toISOString()\n  : new Date(createdRaw).toISOString();\nconst rawSource = String(fieldValue('lead source') ?? task.source ?? 'other').toLowerCase();\nconst source = ['meta', 'organic', 'referral', 'other'].includes(rawSource) ? rawSource : 'other';\nconst status = String(task.status?.status ?? task.status ?? '').toLowerCase();\nconst stageMap = { qualified: 'qualified', discovery_scheduled: 'discovery_scheduled', discovery_attended: 'discovery_attended', ambition_interview: 'ambition_interview', architect_session: 'architect_session', paid: 'paid' };\nconst stage = stageMap[status.replaceAll(' ', '_')] ?? null;\nreturn [{ json: { accepted: true, mode: 'preview_only', lead: { id: `clickup_${externalId}`, external_clickup_id: String(externalId), created_at: createdAt, source, campaign_id: fieldValue('campaign id') ? String(fieldValue('campaign id')) : null }, stage_event: stage ? { stage, occurred_at: new Date().toISOString(), external_event_id: `clickup_${externalId}_${stage}` } : null, note: 'Preview only: connect an approved PostgreSQL upsert after confirming ClickUp field IDs and stage mapping.' } }];"
+      },
+      "id": "9e2f1226-9d4a-4cda-96d5-c9f812321102",
+      "name": "Validate and normalize lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    }
+  ],
+  "connections": {
+    "Receive ClickUp event": {
+      "main": [[{"node": "Validate and normalize lead", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "4f60e9e1-4c84-42f4-8d67-9c1d55001101",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": []
+}
